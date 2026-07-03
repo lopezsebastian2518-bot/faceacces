@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Access KN</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --c-deep:#005187;      /* azul profundo (primario) */
+    --c-mid:#4d82bc;       /* azul medio */
+    --c-sky:#84b6f4;       /* azul cielo */
+    --c-pale:#c4dafa;      /* azul pálido */
+    --c-white:#fcffff;     /* casi blanco */
+    --bg:#eef4fc;
+    --card:#fcffff;
+    --text:#0d2638;
+    --muted:#5f7892;
+    --line:#d6e4f7;
+    --ok:#1f8a5b;--warn:#c98a00;--err:#c0392b;
+    --shadow:0 4px 18px rgba(0,81,135,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:16px}
+  .wrap{max-width:540px;margin:0 auto}
+  header{display:flex;align-items:center;gap:12px;padding:16px 4px;margin-bottom:6px}
+  .logo{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--c-deep),var(--c-mid));display:grid;place-items:center;font-weight:800;font-size:18px;letter-spacing:-1px;flex-shrink:0;color:#fff;box-shadow:var(--shadow)}
+  header h1{font-size:18px;font-weight:800;line-height:1.15;letter-spacing:-.3px}
+  header p{font-size:12px;color:var(--muted)}
+  .role-pill{margin-left:auto;font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;background:var(--c-pale);color:var(--c-deep)}
+  .role-pill.admin{background:var(--c-deep);color:#fff}
+  .tabs{display:flex;gap:5px;background:var(--c-white);padding:6px;border-radius:14px;margin-bottom:14px;box-shadow:var(--shadow);overflow-x:auto}
+  .tab{flex:1;min-width:max-content;text-align:center;padding:10px 12px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);border:none;background:none;transition:.15s;white-space:nowrap}
+  .tab.active{background:var(--c-deep);color:#fff}
+  .tab.hidden{display:none}
+  .card{background:var(--card);border-radius:16px;padding:18px;margin-bottom:14px;border:1px solid var(--line);box-shadow:var(--shadow)}
+  .video-box{position:relative;width:100%;aspect-ratio:4/3;background:#0d2638;border-radius:14px;overflow:hidden;margin-bottom:12px}
+  video,canvas{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover}
+  canvas{pointer-events:none}
+  .status{text-align:center;font-size:14px;font-weight:700;padding:11px;border-radius:10px;background:var(--c-pale);color:var(--c-deep);margin-bottom:12px}
+  .status.ok{background:rgba(31,138,91,.14);color:var(--ok)}
+  .status.warn{background:rgba(201,138,0,.14);color:var(--warn)}
+  .status.err{background:rgba(192,57,43,.12);color:var(--err)}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:700}
+  input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--text);font-size:14px;margin-bottom:12px}
+  input:focus,select:focus{outline:none;border-color:var(--c-mid);box-shadow:0 0 0 3px var(--c-pale)}
+  button.btn{width:100%;padding:11px;border-radius:10px;border:none;background:var(--c-deep);color:#fff;font-size:13px;font-weight:800;cursor:pointer;transition:.15s}
+  button.btn:hover{background:#01446f}
+  button.btn:active{transform:scale(.98)}
+  button.btn:disabled{opacity:.45;cursor:not-allowed}
+  button.btn.ghost{background:var(--c-pale);color:var(--c-deep)}
+  button.btn.ghost:hover{background:var(--c-sky)}
+  button.btn.danger{background:var(--err)}
+  .empleado{display:flex;align-items:center;gap:12px;padding:11px;background:var(--bg);border-radius:12px;margin-bottom:8px}
+  /* avatar bonito: anillo degradado */
+  .av{width:52px;height:52px;border-radius:50%;flex-shrink:0;padding:2.5px;background:linear-gradient(135deg,var(--c-deep),var(--c-sky));display:grid;place-items:center}
+  .av .inner{width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--c-mid);display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px;border:2px solid var(--c-white)}
+  .av .inner img{width:100%;height:100%;object-fit:cover}
+  .empleado .info{flex:1;min-width:0}
+  .empleado .nom{font-size:14px;font-weight:700}
+  .empleado .ced{font-size:11px;color:var(--muted)}
+  .empleado .cargo{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--c-pale);color:var(--c-deep);margin-top:3px}
+  .empleado .del{color:var(--err);background:none;border:none;cursor:pointer;font-size:20px;padding:4px}
+  .empleado .edit{color:var(--c-mid);background:none;border:none;cursor:pointer;font-size:17px;padding:4px}
+  .hint{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.55}
+  .log-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .log-item:last-child{border:none}
+  .log-item .l-nom{font-weight:600}
+  .log-item .l-fecha{font-size:11px;color:var(--muted)}
+  .badge{font-size:11px;font-weight:800;padding:3px 9px;border-radius:7px}
+  .badge.in{background:rgba(31,138,91,.16);color:var(--ok)}
+  .badge.out{background:rgba(201,138,0,.16);color:var(--warn)}
+  .loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:20px;color:var(--muted)}
+  .spin{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--c-mid);border-radius:50%;animation:s 1s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .hidden{display:none}
+  .modal-overlay{position:fixed;inset:0;background:rgba(13,38,56,.55);display:grid;place-items:center;z-index:50;padding:16px}
+  .modal-overlay.hidden{display:none}
+  .steps{display:flex;gap:8px;margin-bottom:12px}
+  .step{flex:1;text-align:center;padding:9px 2px;border-radius:8px;background:var(--bg);font-size:10px;font-weight:700;color:var(--muted);border:1px solid var(--line)}
+  .step.done{background:rgba(31,138,91,.14);color:var(--ok);border-color:transparent}
+  .step.active{background:var(--c-deep);color:#fff;border-color:transparent}
+  /* reto liveness */
+  .reto{text-align:center;padding:14px;border-radius:12px;background:var(--c-deep);color:#fff;margin-bottom:12px;font-weight:800;font-size:16px;letter-spacing:.3px}
+  .reto small{display:block;font-weight:600;font-size:11px;opacity:.8;margin-top:3px}
+  .reto-dots{display:flex;gap:6px;justify-content:center;margin-top:8px}
+  .reto-dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3)}
+  .reto-dots i.on{background:var(--c-sky)}
+  /* switch entrada/salida */
+  .modo-track{position:relative;display:flex;background:var(--bg);border:1px solid var(--line);border-radius:13px;padding:5px;cursor:pointer;user-select:none;height:56px;margin-bottom:12px}
+  .modo-opt{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;font-size:15px;font-weight:800;z-index:2;color:var(--muted);transition:color .2s}
+  .modo-opt .dot{width:9px;height:9px;border-radius:50%;background:currentColor}
+  .modo-thumb{position:absolute;top:5px;left:5px;width:calc(50% - 5px);height:calc(100% - 10px);border-radius:9px;background:var(--ok);transition:transform .25s cubic-bezier(.4,0,.2,1),background .25s;z-index:1;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+  .modo-track.salida .modo-thumb{transform:translateX(100%);background:var(--warn)}
+  .modo-track.entrada .modo-opt.in{color:#fff}
+  .modo-track.salida .modo-opt.out{color:#fff}
+  .row-toggle{display:flex;align-items:center;justify-content:space-between;padding:7px 0}
+  .switch{position:relative;width:48px;height:27px;flex-shrink:0;cursor:pointer}
+  .switch input{display:none}
+  .slider{position:absolute;inset:0;background:var(--line);border-radius:20px;transition:.2s}
+  .slider:before{content:"";position:absolute;width:19px;height:19px;left:4px;top:4px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .switch input:checked + .slider{background:var(--c-deep)}
+  .switch input:checked + .slider:before{transform:translateX(21px)}
+  .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .stat{background:linear-gradient(135deg,var(--c-deep),var(--c-mid));color:#fff;border-radius:12px;padding:14px;text-align:center}
+  .stat .n{font-size:24px;font-weight:800}
+  .stat .l{font-size:11px;opacity:.85;margin-top:2px}
+  .vista-btn{background:transparent;color:var(--muted);transition:.15s}
+  .vista-btn.active{background:var(--c-deep);color:#fff}
+
+  /* ===== MODO KIOSCO (pantalla completa para tablet fija) ===== */
+  body.kiosco{padding:0;background:#0d2638;overflow:hidden}
+  body.kiosco header,
+  body.kiosco .tabs,
+  body.kiosco #tab-registro,
+  body.kiosco #tab-personas,
+  body.kiosco #tab-reportes,
+  body.kiosco #tab-admin{display:none !important}
+  body.kiosco .wrap{max-width:100%;width:100vw;height:100vh;margin:0;display:block}
+  body.kiosco #tab-asistencia{height:100vh}
+  body.kiosco #tab-asistencia .card{
+    height:100vh;margin:0;border:none;border-radius:0;background:#0d2638;
+    display:flex;flex-direction:column;padding:18px;gap:12px;
+  }
+  body.kiosco .modo-track{flex:none;max-width:560px;width:100%;align-self:center}
+  body.kiosco .video-box{flex:1;aspect-ratio:auto;min-height:0;max-width:900px;width:100%;align-self:center}
+  body.kiosco #status-a{flex:none;font-size:18px;padding:16px;max-width:560px;width:100%;align-self:center}
+  body.kiosco #reto-box{flex:none;max-width:560px;width:100%;align-self:center}
+  body.kiosco #btn-cam-a,body.kiosco #btn-kiosco{display:none !important}
+  body.kiosco #btn-salir-kiosco{
+    display:grid;place-items:center;position:fixed;top:14px;right:14px;z-index:60;
+    width:48px;height:48px;border-radius:12px;border:none;cursor:pointer;
+    background:rgba(255,255,255,.15);color:#fff;font-size:22px;backdrop-filter:blur(4px);
+  }
+
+  /* ===== Layout PC (estilo panel de gestión con sidebar) ===== */
+  @media (min-width:900px){
+    body{padding:0}
+    .wrap{
+      max-width:1100px;margin:0 auto;min-height:100vh;
+      display:grid;
+      grid-template-columns:230px 1fr;
+      grid-template-rows:auto 1fr;
+      grid-template-areas:"head head" "nav main";
+      gap:0;background:var(--c-white);
+      box-shadow:0 0 40px rgba(0,81,135,.10);
+    }
+    header{
+      grid-area:head;
+      background:linear-gradient(100deg,var(--c-deep),var(--c-mid));
+      color:#fff;margin:0;padding:18px 24px;border-radius:0;
+    }
+    header h1{color:#fff}
+    header p{color:#dce9fb}
+    .logo{background:rgba(255,255,255,.18)}
+    .tabs{
+      grid-area:nav;flex-direction:column;align-items:stretch;
+      background:#f3f8fe;border-radius:0;box-shadow:none;
+      padding:14px 10px;gap:4px;border-right:1px solid var(--line);
+      overflow:visible;margin:0;
+    }
+    .tab{flex:none;text-align:left;padding:12px 16px;border-radius:10px;font-size:14px}
+    .tab.active{background:var(--c-deep);color:#fff}
+    /* las secciones comparten el área main (solo la visible) */
+    #tab-asistencia:not(.hidden),#tab-registro:not(.hidden),
+    #tab-personas:not(.hidden),#tab-reportes:not(.hidden),#tab-admin:not(.hidden){
+      grid-area:main;padding:24px;overflow-y:auto;
+    }
+    /* dentro del panel, aprovechar ancho: tarjetas en 2 columnas donde aplique */
+    #tab-admin .card,#tab-reportes .card,#tab-personas .card{max-width:760px}
+    .filtros{grid-template-columns:repeat(3,1fr)}
+    /* el modal se mantiene centrado en toda la pantalla */
+  }
+  .filtros{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .filtros .full{grid-column:1/-1}
+  .filtros input,.filtros select{margin-bottom:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">KN</div>
+    <div>
+      <h1>Face Access KN</h1>
+      <p>Reconocimiento facial &middot; Entrada y salida</p>
+    </div>
+    <span id="role-pill" class="role-pill">Acceso</span>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="asistencia">Asistencia</button>
+    <button class="tab tab-admin hidden" data-tab="registro">Registrar</button>
+    <button class="tab tab-admin hidden" data-tab="personas">Personas</button>
+    <button class="tab tab-admin hidden" data-tab="reportes">Reportes</button>
+    <button class="tab" data-tab="admin">Admin</button>
+  </div>
+
+  <!-- ASISTENCIA -->
+  <section id="tab-asistencia">
+    <div class="card">
+      <div class="modo-track entrada" id="modo-track">
+        <div class="modo-opt in"><span class="dot"></span>ENTRADA</div>
+        <div class="modo-opt out"><span class="dot"></span>SALIDA</div>
+        <div class="modo-thumb"></div>
+      </div>
+      <div id="reto-box" class="reto hidden">
+        <span id="reto-text">—</span>
+        <small id="reto-sub">Sigue las indicaciones para confirmar</small>
+        <div class="reto-dots" id="reto-dots"></div>
+      </div>
+      <div class="video-box">
+        <video id="vid-a" autoplay muted playsinline></video>
+        <canvas id="cv-a"></canvas>
+      </div>
+      <div id="status-a" class="status">Iniciando…</div>
+      <div style="display:flex;gap:8px">
+        <button id="btn-cam-a" class="btn ghost" style="flex:1">Encender cámara</button>
+        <button id="btn-kiosco" class="btn ghost" style="flex:none;width:auto" title="Pantalla completa">⛶ Pantalla completa</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Botón flotante para salir del modo kiosco -->
+  <button id="btn-salir-kiosco" class="hidden" title="Salir de pantalla completa">⤢</button>
+
+  <!-- REGISTRO -->
+  <section id="tab-registro" class="hidden">
+    <div class="card">
+      <div class="video-box">
+        <video id="vid-r" autoplay muted playsinline></video>
+        <canvas id="cv-r"></canvas>
+      </div>
+      <div class="steps">
+        <div class="step" id="step-0">1. Frente</div>
+        <div class="step" id="step-1">2. Izquierda</div>
+        <div class="step" id="step-2">3. Derecha</div>
+      </div>
+      <div id="status-r" class="status">Cámara apagada</div>
+      <button id="btn-cam-r" class="btn ghost" style="margin-bottom:12px">Encender cámara</button>
+      <label>Nombre completo</label>
+      <input id="reg-nom" placeholder="Ej: Sebastián Pérez">
+      <label>Cédula / ID</label>
+      <input id="reg-ced" placeholder="Ej: 1012345678" inputmode="numeric">
+      <label>Cargo</label>
+      <select id="reg-cargo">
+        <option value="ANALISTA DE DATOS">ANALISTA DE DATOS</option>
+        <option value="SUPERVISOR DE BODEGA">SUPERVISOR DE BODEGA</option>
+        <option value="AUXILIAR DE BODEGA">AUXILIAR DE BODEGA</option>
+        <option value="MONTACARGUISTA">MONTACARGUISTA</option>
+      </select>
+      <label>Empresa</label>
+      <select id="reg-empresa">
+        <option value="KUEHNE + NAGEL SAS">KUEHNE + NAGEL SAS</option>
+        <option value="SOLUCIONES INMEDIATAS">SOLUCIONES INMEDIATAS</option>
+        <option value="MANPOWER">MANPOWER</option>
+      </select>
+      <label>Cuenta</label>
+      <select id="reg-cuenta">
+        <option value="Decathlon GE">Decathlon GE</option>
+        <option value="Decathlon IN-OUT">Decathlon IN-OUT</option>
+      </select>
+      <label>CECO</label>
+      <select id="reg-ceco">
+        <option value="56TPM1">56TPM1</option>
+        <option value="57TPM1">57TPM1</option>
+      </select>
+      <button id="btn-capturar" class="btn" disabled>Iniciar captura multi-ángulo</button>
+      <p class="hint">Te guiará por 3 ángulos (frente, izquierda y derecha). Se guarda una miniatura de referencia.</p>
+    </div>
+  </section>
+
+  <!-- PERSONAS -->
+  <section id="tab-personas" class="hidden">
+    <div class="card">
+      <label>Buscar personas</label>
+      <input id="p-buscar" placeholder="Nombre o cédula…">
+      <select id="p-cargo" style="margin-bottom:14px">
+        <option value="">Todos los cargos</option>
+        <option value="Auxiliar de bodega">Auxiliar de bodega</option>
+        <option value="Montacarguista">Montacarguista</option>
+        <option value="Supervisor">Supervisor</option>
+      </select>
+      <label>Personas registradas (<span id="emp-count">0</span>)</label>
+      <div id="lista-emp"><div class="loading"><span class="spin"></span>Cargando…</div></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="btn-refresh-emp" class="btn ghost" style="flex:1">Actualizar lista</button>
+        <button id="btn-export-emp" class="btn ghost" style="flex:1">⬇ Descargar maestra</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- REPORTES -->
+  <section id="tab-reportes" class="hidden">
+    <div class="card">
+      <div class="stat-grid">
+        <div class="stat"><div class="n" id="st-personas">0</div><div class="l">Personas</div></div>
+        <div class="stat"><div class="n" id="st-marcas">0</div><div class="l" id="st-marcas-l">Registros</div></div>
+      </div>
+      <!-- selector de vista: 3 botones -->
+      <div style="display:flex;gap:6px;background:var(--bg);padding:5px;border-radius:12px;margin-bottom:14px">
+        <button class="vista-btn active" data-vista="nomina" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">NÓMINA</button>
+        <button class="vista-btn" data-vista="jornadas" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">JORNADAS</button>
+        <button class="vista-btn" data-vista="marcas" style="flex:1;padding:9px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">MARCAS</button>
+      </div>
+      <label>Filtros</label>
+      <div class="filtros">
+        <div>
+          <label style="font-size:11px">Desde</label>
+          <input id="f-desde" type="date">
+        </div>
+        <div>
+          <label style="font-size:11px">Hasta</label>
+          <input id="f-hasta" type="date">
+        </div>
+        <div>
+          <label style="font-size:11px">Cédula</label>
+          <input id="f-cedula" placeholder="Todas" inputmode="numeric">
+        </div>
+        <div>
+          <label style="font-size:11px">Nombre</label>
+          <input id="f-nombre" placeholder="Todos">
+        </div>
+        <div>
+          <label style="font-size:11px">Cargo</label>
+          <select id="f-cargo">
+            <option value="">Todos</option>
+            <option value="ANALISTA DE DATOS">ANALISTA DE DATOS</option>
+            <option value="SUPERVISOR DE BODEGA">SUPERVISOR DE BODEGA</option>
+            <option value="AUXILIAR DE BODEGA">AUXILIAR DE BODEGA</option>
+            <option value="MONTACARGUISTA">MONTACARGUISTA</option>
+          </select>
+        </div>
+        <div id="wrap-estado">
+          <label style="font-size:11px">Estado</label>
+          <select id="f-estado">
+            <option value="">Todos</option>
+            <option value="Completo">Completos</option>
+            <option value="Incompleto">Incompletos</option>
+          </select>
+        </div>
+        <div id="wrap-jornada" class="full">
+          <label style="font-size:11px">Jornada para cálculo de extras (horas/día · horas/semana)</label>
+          <div style="display:flex;gap:8px">
+            <input id="f-jornada-dia" type="number" step="0.5" min="1" max="12" value="8" style="margin-bottom:0" title="Horas por día antes de extra">
+            <input id="f-jornada-sem" type="number" step="1" min="1" max="60" value="44" style="margin-bottom:0" title="Horas por semana">
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin:12px 0">
+        <button id="btn-hoy" class="btn ghost" style="flex:1">↻ Hoy</button>
+      </div>
+      <button id="btn-export" class="btn ghost" style="margin-bottom:12px">⬇ Descargar Excel (.xlsx)</button>
+      <div id="log-reportes"><div class="loading"><span class="spin"></span>Cargando…</div></div>
+    </div>
+  </section>
+
+  <!-- MODAL editar persona -->
+  <div id="modal-editar" class="modal-overlay hidden">
+    <div class="card" style="max-width:420px;width:100%;margin:0">
+      <label style="font-size:15px;color:var(--text)">Editar persona</label>
+      <p class="hint" style="text-align:left" id="ed-info">—</p>
+      <label>Nombre completo</label>
+      <input id="ed-nombre" placeholder="Nombre">
+      <label>Cargo</label>
+      <select id="ed-cargo" style="margin-bottom:12px">
+        <option value="ANALISTA DE DATOS">ANALISTA DE DATOS</option>
+        <option value="SUPERVISOR DE BODEGA">SUPERVISOR DE BODEGA</option>
+        <option value="AUXILIAR DE BODEGA">AUXILIAR DE BODEGA</option>
+        <option value="MONTACARGUISTA">MONTACARGUISTA</option>
+      </select>
+      <label>Empresa</label>
+      <select id="ed-empresa" style="margin-bottom:12px">
+        <option value="KUEHNE + NAGEL SAS">KUEHNE + NAGEL SAS</option>
+        <option value="SOLUCIONES INMEDIATAS">SOLUCIONES INMEDIATAS</option>
+        <option value="MANPOWER">MANPOWER</option>
+      </select>
+      <label>Cuenta</label>
+      <select id="ed-cuenta" style="margin-bottom:12px">
+        <option value="Decathlon GE">Decathlon GE</option>
+        <option value="Decathlon IN-OUT">Decathlon IN-OUT</option>
+      </select>
+      <label>CECO</label>
+      <select id="ed-ceco" style="margin-bottom:12px">
+        <option value="56TPM1">56TPM1</option>
+        <option value="57TPM1">57TPM1</option>
+      </select>
+      <div id="ed-recap-box" class="hidden" style="margin-bottom:12px">
+        <div class="video-box" style="aspect-ratio:4/3">
+          <video id="ed-video" autoplay muted playsinline></video>
+          <canvas id="ed-canvas"></canvas>
+        </div>
+        <div class="steps">
+          <div class="step" id="ed-step-0">1. Frente</div>
+          <div class="step" id="ed-step-1">2. Izquierda</div>
+          <div class="step" id="ed-step-2">3. Derecha</div>
+        </div>
+        <div id="ed-status" class="status">Mira al frente…</div>
+      </div>
+      <button id="ed-recapturar" class="btn ghost" style="margin-bottom:10px">↻ Re-capturar rostro</button>
+      <div style="display:flex;gap:8px">
+        <button id="ed-guardar" class="btn" style="flex:1">Guardar cambios</button>
+        <button id="ed-cancelar" class="btn ghost" style="flex:1">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL completar faltante -->
+  <div id="modal-completar" class="modal-overlay hidden">
+    <div class="card" style="max-width:420px;width:100%;margin:0">
+      <label style="font-size:15px;color:var(--text)">Completar jornada</label>
+      <p class="hint" style="text-align:left" id="mc-info">—</p>
+      <label>Agregar marca faltante</label>
+      <select id="mc-tipo" style="margin-bottom:10px">
+        <option value="SALIDA">SALIDA</option>
+        <option value="ENTRADA">ENTRADA</option>
+      </select>
+      <div class="filtros" style="margin-bottom:12px">
+        <div><label style="font-size:11px">Fecha</label><input id="mc-fecha" type="date"></div>
+        <div><label style="font-size:11px">Hora (24h)</label><input id="mc-hora" type="time"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="mc-guardar" class="btn" style="flex:1">Guardar</button>
+        <button id="mc-cancelar" class="btn ghost" style="flex:1">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <section id="tab-admin" class="hidden">
+    <div class="card" id="login-card">
+      <label>PIN de administrador</label>
+      <input id="admin-pin" type="password" inputmode="numeric" placeholder="••••" maxlength="8">
+      <button id="btn-login" class="btn">Ingresar como administrador</button>
+      <p class="hint">PIN por defecto: 1234. Cámbialo tras ingresar.</p>
+    </div>
+    <div id="admin-panel" class="hidden">
+      <div class="card">
+        <div style="font-size:14px;font-weight:700;margin-bottom:4px">Verificación anti-foto</div>
+        <div class="hint" style="text-align:left;margin-bottom:10px">Elige qué retos exigir antes de marcar. Si no marcas ninguno, la verificación queda desactivada.</div>
+        <div class="row-toggle">
+          <div style="font-size:13px;font-weight:600">Girar la cabeza</div>
+          <label class="switch"><input type="checkbox" id="tg-girar"><span class="slider"></span></label>
+        </div>
+        <div class="row-toggle">
+          <div style="font-size:13px;font-weight:600">Parpadear</div>
+          <label class="switch"><input type="checkbox" id="tg-parpadear"><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row-toggle">
+          <div><div style="font-size:14px;font-weight:700">Guardar miniatura</div>
+          <div class="hint" style="text-align:left;margin-top:2px">Foto de referencia al registrar.</div></div>
+          <label class="switch"><input type="checkbox" id="tg-foto" checked><span class="slider"></span></label>
+        </div>
+      </div>
+      <div class="card">
+        <label>Sensibilidad de reconocimiento</label>
+        <input id="cfg-thresh" type="number" step="0.05" min="0.3" max="0.8" value="0.5">
+        <button id="btn-guardar-cfg" class="btn">Guardar configuración</button>
+      </div>
+      <div class="card">
+        <label>Cambiar PIN</label>
+        <input id="nuevo-pin" type="password" inputmode="numeric" placeholder="Nuevo PIN" maxlength="8">
+        <button id="btn-cambiar-pin" class="btn ghost">Actualizar PIN</button>
+      </div>
+      <button id="btn-logout" class="btn danger">Salir de modo admin</button>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.js"></script>
+<script>
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  PEGA AQUÍ LA URL DE TU IMPLEMENTACIÓN (termina en /exec).          ║
+// ║  Apps Script > Implementar > Administrar implementaciones > copia   ║
+// ║  la URL y reemplaza SOLO el texto entre las comillas de abajo.      ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const URL_FIJA = 'https://script.google.com/macros/s/AKfycbyBAQpo79os1bNxvjGvaoNpJTmy1Yo6At6nirOE-nhpZVSQvubBYTUh36fKUQtfC-ge/exec';
+const CFG = {
+  url: URL_FIJA,
+  thresh: parseFloat(localStorage.getItem('ca_thresh')) || 0.55,
+  retoGirar: localStorage.getItem('ca_girar')==='1',
+  retoParpadear: localStorage.getItem('ca_parpadear')==='1',
+  foto: localStorage.getItem('ca_foto')!=='0',
+  modelUrl: 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model/'
+};
+let claveAdmin = '1234'; // se sincroniza desde el backend (hoja Config)
+function livenessActivo(){ return CFG.retoGirar || CFG.retoParpadear; }
+let modelsLoaded=false, empleados=[], faceMatcher=null;
+let streamA=null, streamR=null, loopA=null;
+let lastMark={}, isAdmin=false, registrosCache=[];
+
+const POSES=['frente','izquierda','derecha'];
+let capturing=false, capStep=0, capDescriptors=[], capFoto=null;
+
+let modoActual = localStorage.getItem('ca_modo') || 'ENTRADA';
+function aplicarModo(){
+  const tr=document.getElementById('modo-track');
+  tr.classList.toggle('salida', modoActual==='SALIDA');
+  tr.classList.toggle('entrada', modoActual!=='SALIDA');
+}
+document.getElementById('modo-track').onclick=()=>{
+  modoActual = (modoActual==='ENTRADA') ? 'SALIDA' : 'ENTRADA';
+  localStorage.setItem('ca_modo', modoActual);
+  aplicarModo(); lastMark={};
+};
+aplicarModo();
+
+/* ===== Liveness adaptativo + reto aleatorio ===== */
+// Calibración: medimos EAR base con ojos abiertos y detectamos caída relativa.
+const RetoLive = {
+  active:false, secuencia:[], idx:0,
+  earBase:null, earSamples:[], calibrando:true,
+  yawBase:null,
+  reset(){
+    this.secuencia = this._generar();
+    this.idx=0; this.earBase=null; this.earSamples=[]; this.calibrando=true; this.yawBase=null;
+    this.active=true; this._render();
+  },
+  _generar(){
+    // construye retos según lo que el admin activó
+    let pool=[];
+    if(CFG.retoParpadear) pool.push('parpadea');
+    if(CFG.retoGirar) pool.push(Math.random()<0.5?'izquierda':'derecha');
+    // si ambos activos, mezcla el orden; si solo uno, queda ese
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}
+    if(!pool.length) pool=['parpadea']; // fallback
+    return pool;
+  },
+  _render(){
+    const box=document.getElementById('reto-box');
+    box.classList.remove('hidden');
+    const txt={parpadea:'PARPADEA',izquierda:'GIRA A TU IZQUIERDA',derecha:'GIRA A TU DERECHA'};
+    const cur=this.secuencia[this.idx];
+    document.getElementById('reto-text').textContent = this.calibrando ? 'Mantén los ojos abiertos…' : (txt[cur]||'');
+    document.getElementById('reto-sub').textContent = this.calibrando ? 'Calibrando…' : 'Reto '+(this.idx+1)+' de '+this.secuencia.length;
+    const dots=document.getElementById('reto-dots');
+    dots.innerHTML=this.secuencia.map((_,i)=>`<i class="${i<this.idx?'on':''}"></i>`).join('');
+  },
+  hide(){ document.getElementById('reto-box').classList.add('hidden'); this.active=false; },
+  // procesa cada frame; devuelve true si el reto completo se cumplió
+  process(landmarks){
+    const e=avgEAR(landmarks);
+    const yaw=yawRatio(landmarks);
+    // fase de calibración: ~10 muestras de ojo abierto
+    if(this.calibrando){
+      this.earSamples.push(e);
+      if(this.earSamples.length>=8){
+        this.earBase = this.earSamples.reduce((a,b)=>a+b,0)/this.earSamples.length;
+        this.yawBase = yaw;
+        this.calibrando=false; this._render();
+      }
+      return false;
+    }
+    const cur=this.secuencia[this.idx];
+    let ok=false;
+    if(cur==='parpadea'){
+      // caída relativa del 22% respecto a TU base = parpadeo (muy sensible)
+      if(e < this.earBase*0.78){ ok=true; }
+    } else if(cur==='izquierda'){
+      if(yaw - this.yawBase > 0.10) ok=true;
+    } else if(cur==='derecha'){
+      if(yaw - this.yawBase < -0.10) ok=true;
+    }
+    if(ok){
+      this.idx++;
+      if(this.idx>=this.secuencia.length){ return true; } // completado
+      this._render();
+    }
+    return false;
+  }
+};
+
+/* ===== Tabs ===== */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    ['asistencia','registro','personas','reportes','admin'].forEach(n=>{
+      document.getElementById('tab-'+n).classList.toggle('hidden', n!==t.dataset.tab);
+    });
+    if(t.dataset.tab!=='asistencia'){ stopLoopA(); RetoLive.hide(); }
+    if(t.dataset.tab==='asistencia'){
+      // si la cámara ya estaba encendida, reanudar el reconocimiento
+      if(streamA && streamA.active){
+        if(livenessActivo()) RetoLive.reset();
+        setStatus('a','Mira a la cámara','warn');
+        startLoopA();
+      }
+    }
+    if(t.dataset.tab!=='registro'){ stopCam(streamR,'vid-r'); capturing=false; }
+    if(t.dataset.tab==='personas') cargarEmpleados();
+    if(t.dataset.tab==='reportes'){ document.getElementById('st-personas').textContent=empleados.length; cargarRegistrosHoy(); }
+  };
+});
+
+/* ===== Roles ===== */
+function aplicarRol(){
+  document.querySelectorAll('.tab-admin').forEach(t=>t.classList.toggle('hidden', !isAdmin));
+  const pill=document.getElementById('role-pill');
+  pill.textContent = isAdmin ? 'Administrador' : 'Acceso';
+  pill.classList.toggle('admin', isAdmin);
+  document.getElementById('login-card').classList.toggle('hidden', isAdmin);
+  document.getElementById('admin-panel').classList.toggle('hidden', !isAdmin);
+}
+document.getElementById('btn-login').onclick=()=>{
+  const pin=document.getElementById('admin-pin').value.trim();
+  if(pin===claveAdmin){ isAdmin=true; aplicarRol(); document.getElementById('admin-pin').value=''; }
+  else alert('Clave incorrecta');
+};
+document.getElementById('btn-logout').onclick=()=>{ isAdmin=false; aplicarRol(); document.querySelector('.tab[data-tab="asistencia"]').click(); };
+document.getElementById('btn-cambiar-pin').onclick=async()=>{
+  const np=document.getElementById('nuevo-pin').value.trim();
+  if(np.length<4){alert('La clave debe tener al menos 4 caracteres');return;}
+  if(!CFG.url){alert('Configura primero la URL');return;}
+  try{
+    const res=await postAS({action:'cambiarclave',claveActual:claveAdmin,nuevaClave:np});
+    if(res.error){ alert(res.error); return; }
+    claveAdmin=np;
+    document.getElementById('nuevo-pin').value=''; alert('Clave actualizada en la base de datos');
+  }catch(e){ alert('Error al actualizar la clave'); }
+};
+
+/* ===== Modelos / cámara ===== */
+async function loadModels(){
+  if(modelsLoaded) return;
+  await faceapi.nets.tinyFaceDetector.loadFromUri(CFG.modelUrl);
+  await faceapi.nets.faceLandmark68Net.loadFromUri(CFG.modelUrl);
+  await faceapi.nets.faceRecognitionNet.loadFromUri(CFG.modelUrl);
+  modelsLoaded=true;
+}
+async function startCam(id){
+  const v=document.getElementById(id);
+  const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640}},audio:false});
+  v.srcObject=s; await v.play(); return s;
+}
+function stopCam(s,id){ if(s)s.getTracks().forEach(t=>t.stop()); const v=document.getElementById(id); if(v)v.srcObject=null; }
+function setStatus(w,m,t){ const e=document.getElementById('status-'+w); e.textContent=m; e.className='status'+(t?' '+t:''); }
+
+function ear(eye){
+  const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  return (d(eye[1],eye[5])+d(eye[2],eye[4]))/(2*d(eye[0],eye[3]));
+}
+function avgEAR(l){ return (ear(l.getLeftEye())+ear(l.getRightEye()))/2; }
+function yawRatio(l){
+  const le=l.getLeftEye(), re=l.getRightEye(), nose=l.getNose();
+  const eyeMidX=(le[0].x+re[3].x)/2, noseX=nose[3].x;
+  const eyeWidth=Math.abs(re[3].x-le[0].x)||1;
+  return (noseX-eyeMidX)/eyeWidth;
+}
+// Devuelve la pose horizontal detectada (frente, izquierda, derecha).
+function poseDetectada(l){
+  const yaw=yawRatio(l);
+  if(yaw>0.14) return 'izquierda';
+  if(yaw<-0.14) return 'derecha';
+  return 'frente';
+}
+function poseHorizontal(l){ return poseDetectada(l); }
+function capturarMiniatura(video, box){
+  const c=document.createElement('canvas');
+  const size=128; c.width=size; c.height=size;
+  const ctx=c.getContext('2d');
+  // encuadre cuadrado centrado en el rostro, con algo de margen
+  const m=box.width*0.25;
+  const sx=Math.max(0,box.x-m), sy=Math.max(0,box.y-m);
+  const s=Math.min(box.width+m*2, box.height+m*2);
+  ctx.drawImage(video, sx, sy, s, s, 0,0,size,size);
+  return c.toDataURL('image/jpeg',0.7);
+}
+
+/* ===== Datos ===== */
+async function cargarEmpleados(){
+  if(!CFG.url) return;
+  try{
+    const r=await fetch(CFG.url+'?action=empleados');
+    const d=await r.json();
+    empleados=(d.empleados||[]).map(e=>({
+      nombre:e.nombre, cedula:e.cedula, foto:e.foto||'', cargo:e.cargo||'',
+      empresa:e.empresa||'', cuenta:e.cuenta||'', ceco:e.ceco||'',
+      descriptores:(e.descriptores||[e.descriptor]).filter(Boolean).map(x=>new Float32Array(x))
+    }));
+    buildMatcher(); renderEmpleados();
+  }catch(e){console.error(e);}
+}
+function buildMatcher(){
+  const labeled=empleados.filter(e=>e.descriptores.length)
+    .map(e=>new faceapi.LabeledFaceDescriptors(e.cedula, e.descriptores));
+  faceMatcher = labeled.length ? new faceapi.FaceMatcher(labeled, CFG.thresh) : null;
+}
+function avatarHTML(e){
+  return `<div class="av"><div class="inner">${e.foto?`<img src="${e.foto}">`:(e.nombre[0]||'?').toUpperCase()}</div></div>`;
+}
+function renderEmpleados(){
+  const cnt=document.getElementById('emp-count');
+  const c=document.getElementById('lista-emp'); if(!c) return;
+  // aplicar filtros
+  const q=(document.getElementById('p-buscar')?.value||'').toLowerCase().trim();
+  const cargoF=document.getElementById('p-cargo')?.value||'';
+  let lista=empleados.filter(e=>{
+    const matchTexto = !q || e.nombre.toLowerCase().includes(q) || String(e.cedula).includes(q);
+    const matchCargo = !cargoF || e.cargo===cargoF;
+    return matchTexto && matchCargo;
+  });
+  if(cnt) cnt.textContent=lista.length;
+  if(!empleados.length){c.innerHTML='<p class="hint">Sin personas registradas aún.</p>';return;}
+  if(!lista.length){c.innerHTML='<p class="hint">Ninguna persona coincide con el filtro.</p>';return;}
+  c.innerHTML=lista.map(e=>`
+    <div class="empleado">
+      ${avatarHTML(e)}
+      <div class="info">
+        <div class="nom">${e.nombre}</div>
+        <div class="ced">${e.cedula} · ${e.descriptores.length} áng.</div>
+        ${e.cargo?`<span class="cargo">${e.cargo}</span>`:''}
+      </div>
+      <button class="edit" title="Editar" onclick="abrirEditar('${e.cedula}')">✎</button>
+      <button class="del" title="Eliminar" onclick="eliminarEmp('${e.cedula}')">&times;</button>
+    </div>`).join('');
+}
+async function eliminarEmp(ced){
+  if(!confirm('¿Eliminar esta persona?'))return;
+  await postAS({action:'eliminar',cedula:ced});
+  await cargarEmpleados();
+}
+
+/* ===== Editar persona ===== */
+let edEmp=null, edStreamRecap=null, edDescriptores=null, edFoto=null;
+function abrirEditar(ced){
+  const e=empleados.find(x=>x.cedula===ced); if(!e) return;
+  edEmp=e; edDescriptores=null; edFoto=null;
+  document.getElementById('ed-info').textContent='Cédula '+e.cedula+' · '+e.descriptores.length+' ángulos actuales';
+  document.getElementById('ed-nombre').value=e.nombre;
+  document.getElementById('ed-cargo').value=e.cargo||'AUXILIAR DE BODEGA';
+  document.getElementById('ed-empresa').value=e.empresa||'KUEHNE + NAGEL SAS';
+  document.getElementById('ed-cuenta').value=e.cuenta||'Decathlon GE';
+  document.getElementById('ed-ceco').value=e.ceco||'56TPM1';
+  document.getElementById('ed-recap-box').classList.add('hidden');
+  document.getElementById('ed-recapturar').textContent='↻ Re-capturar rostro';
+  document.getElementById('modal-editar').classList.remove('hidden');
+}
+document.getElementById('ed-cancelar').onclick=()=>{
+  if(edStreamRecap){ edStreamRecap.getTracks().forEach(t=>t.stop()); edStreamRecap=null; }
+  document.getElementById('modal-editar').classList.add('hidden');
+};
+document.getElementById('ed-recapturar').onclick=async()=>{
+  const box=document.getElementById('ed-recap-box');
+  if(!box.classList.contains('hidden')){
+    // cancelar recaptura
+    if(edStreamRecap){ edStreamRecap.getTracks().forEach(t=>t.stop()); edStreamRecap=null; }
+    box.classList.add('hidden');
+    document.getElementById('ed-recapturar').textContent='↻ Re-capturar rostro';
+    return;
+  }
+  try{
+    await loadModels();
+    box.classList.remove('hidden');
+    document.getElementById('ed-recapturar').textContent='✕ Cancelar re-captura';
+    const v=document.getElementById('ed-video');
+    edStreamRecap=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640}},audio:false});
+    v.srcObject=edStreamRecap; await v.play();
+    recapStep(0);
+  }catch(e){ document.getElementById('ed-status').textContent='No se pudo acceder a la cámara'; }
+};
+function recapStep(step){
+  const v=document.getElementById('ed-video'), cv=document.getElementById('ed-canvas');
+  const pose=POSES[step];
+  for(let i=0;i<POSES.length;i++) document.getElementById('ed-step-'+i).className='step'+(i<step?' done':(i===step?' active':''));
+  if(step===0) edDescriptores=[];
+  const instr={frente:'Mira al FRENTE',izquierda:'Gira a tu IZQUIERDA',derecha:'Gira a tu DERECHA'};
+  document.getElementById('ed-status').textContent=instr[pose]+' y mantén…';
+  let hold=0;
+  const iv=setInterval(async()=>{
+    if(!edStreamRecap){ clearInterval(iv); return; }
+    cv.width=v.videoWidth; cv.height=v.videoHeight;
+    const det=await faceapi.detectSingleFace(v,new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks().withFaceDescriptor();
+    const ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+    if(!det){ hold=0; document.getElementById('ed-status').textContent='No se detecta rostro'; return; }
+    const b=det.detection.box;
+    ctx.strokeStyle='#4d82bc'; ctx.lineWidth=3; ctx.strokeRect(b.x,b.y,b.width,b.height);
+    if(poseHorizontal(det.landmarks)===pose){
+      hold++; document.getElementById('ed-status').textContent=instr[pose]+' ✓ ('+hold+'/2)';
+      if(pose==='frente' && !edFoto) edFoto=capturarMiniatura(v,b);
+      if(hold>=2){
+        clearInterval(iv);
+        edDescriptores.push(Array.from(det.descriptor));
+        document.getElementById('ed-step-'+step).className='step done';
+        if(step+1<POSES.length) recapStep(step+1);
+        else {
+          document.getElementById('ed-status').textContent='✓ Rostro re-capturado ('+edDescriptores.length+' áng.)';
+          if(edStreamRecap){ edStreamRecap.getTracks().forEach(t=>t.stop()); edStreamRecap=null; }
+        }
+      }
+    } else { hold=0; }
+  },500);
+}
+document.getElementById('ed-guardar').onclick=async()=>{
+  if(!edEmp) return;
+  const nombre=document.getElementById('ed-nombre').value.trim();
+  const cargo=document.getElementById('ed-cargo').value;
+  const empresa=document.getElementById('ed-empresa').value;
+  const cuenta=document.getElementById('ed-cuenta').value;
+  const ceco=document.getElementById('ed-ceco').value;
+  if(!nombre){ alert('El nombre no puede quedar vacío'); return; }
+  const payload={action:'registrar',cedula:edEmp.cedula,nombre,cargo,empresa,cuenta,ceco};
+  if(edDescriptores && edDescriptores.length){ payload.descriptores=edDescriptores; if(edFoto) payload.foto=edFoto; }
+  else { payload.descriptores=edEmp.descriptores.map(d=>Array.from(d)); }
+  try{
+    const res=await postAS(payload);
+    if(res.error){ alert(res.error); return; }
+    if(edStreamRecap){ edStreamRecap.getTracks().forEach(t=>t.stop()); edStreamRecap=null; }
+    document.getElementById('modal-editar').classList.add('hidden');
+    await cargarEmpleados();
+  }catch(e){ alert('Error al guardar los cambios'); }
+};
+async function postAS(payload){
+  const r=await fetch(CFG.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});
+  return r.json();
+}
+
+/* ===== ASISTENCIA ===== */
+async function encenderCamaraAsistencia(){
+  if(!CFG.url){setStatus('a','Configura la URL en Admin','err');return false;}
+  try{
+    setStatus('a','Cargando modelos…','warn');
+    await loadModels();
+    if(!empleados.length) await cargarEmpleados();
+    streamA=await startCam('vid-a');
+    if(livenessActivo()) RetoLive.reset(); else RetoLive.hide();
+    setStatus('a','Mira a la cámara','warn');
+    startLoopA();
+    document.getElementById('btn-cam-a').textContent='Cámara activa';
+    return true;
+  }catch(e){setStatus('a','No se pudo acceder a la cámara','err'); return false;}
+}
+document.getElementById('btn-cam-a').onclick=encenderCamaraAsistencia;
+
+/* ===== Modo kiosco (pantalla completa para tablet) ===== */
+async function entrarKiosco(){
+  // asegurar que estamos en la pestaña asistencia
+  document.querySelector('.tab[data-tab="asistencia"]').click();
+  document.body.classList.add('kiosco');
+  document.getElementById('btn-salir-kiosco').classList.remove('hidden');
+  // pantalla completa real del navegador (si el dispositivo lo permite)
+  try{ if(document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); }catch(e){}
+  // encender cámara y reconocer automáticamente si no está activa
+  if(!streamA || !streamA.active){ await encenderCamaraAsistencia(); }
+  else { startLoopA(); }
+}
+function salirKiosco(){
+  document.body.classList.remove('kiosco');
+  document.getElementById('btn-salir-kiosco').classList.add('hidden');
+  try{ if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); }catch(e){}
+}
+document.getElementById('btn-kiosco').onclick=entrarKiosco;
+document.getElementById('btn-salir-kiosco').onclick=salirKiosco;
+// si el usuario sale de fullscreen con ESC, salir del modo kiosco también
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement && document.body.classList.contains('kiosco')) salirKiosco();
+});
+
+let escaneando=false;       // evita solapamiento de detecciones
+let lecturas=[];            // promedia descriptores para estabilidad
+function startLoopA(){
+  const v=document.getElementById('vid-a'), cv=document.getElementById('cv-a');
+  stopLoopA();
+  escaneando=true;
+  lecturas=[];
+  bucleA(v,cv);
+}
+function stopLoopA(){ escaneando=false; if(loopA){clearTimeout(loopA);loopA=null;} }
+
+async function bucleA(v,cv){
+  if(!escaneando) return;
+  // pausa para mostrar el mensaje de confirmación/duplicado
+  if(Date.now()<pausaHasta){ loopA=setTimeout(()=>bucleA(v,cv), 200); return; }
+  try{
+    if(!v.paused && !v.ended && modelsLoaded && v.videoWidth){
+      cv.width=v.videoWidth; cv.height=v.videoHeight;
+      const det=await faceapi.detectSingleFace(v,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.4}))
+        .withFaceLandmarks().withFaceDescriptor();
+      const ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+      if(!det){
+        setStatus('a','Buscando rostro…','warn');
+        lecturas=[];
+      } else {
+        const b=det.detection.box;
+        let liveOK=true;
+        if(livenessActivo()){
+          liveOK = RetoLive.active ? RetoLive.process(det.landmarks) : true;
+        }
+        ctx.strokeStyle=liveOK?'#1f8a5b':'#84b6f4'; ctx.lineWidth=3;
+        ctx.strokeRect(b.x,b.y,b.width,b.height);
+        if(!faceMatcher){
+          setStatus('a','No hay personas registradas','err');
+        } else if(livenessActivo() && !liveOK){
+          /* el cartel del reto guía; seguimos escaneando */
+        } else {
+          // PROMEDIO: acumula 3 descriptores y usa el promedio -> más estable
+          lecturas.push(det.descriptor);
+          if(lecturas.length>3) lecturas.shift();
+          const desc = promediarDescriptores(lecturas);
+          const best=faceMatcher.findBestMatch(desc);
+          if(best.label==='unknown'){
+            setStatus('a','Rostro no reconocido — acércate y mira de frente','warn');
+          } else {
+            await marcar(best.label);
+            lecturas=[];
+          }
+        }
+      }
+    }
+  }catch(err){
+    // NUNCA dejar el bucle muerto: registramos y seguimos
+    console.error('scan error',err);
+  }
+  // reprograma SIEMPRE el siguiente ciclo (aquí está la cura de "se queda pegado")
+  if(escaneando) loopA=setTimeout(()=>bucleA(v,cv), 350);
+}
+
+function promediarDescriptores(arr){
+  if(arr.length===1) return arr[0];
+  const n=arr[0].length, out=new Float32Array(n);
+  for(const d of arr){ for(let i=0;i<n;i++) out[i]+=d[i]; }
+  for(let i=0;i<n;i++) out[i]/=arr.length;
+  return out;
+}
+
+let pausaHasta=0; // congela el escaneo hasta este timestamp para mostrar mensajes
+async function marcar(cedula){
+  const now=Date.now();
+  if(lastMark[cedula] && now-lastMark[cedula]<8000) return;
+  lastMark[cedula]=now;
+  const emp=empleados.find(e=>e.cedula===cedula);
+  setStatus('a','Procesando '+emp.nombre+'…','warn');
+  try{
+    const res=await postAS({action:'marcar',cedula,nombre:emp.nombre,cargo:emp.cargo||'',tipo:modoActual});
+    if(res.duplicado){
+      setStatus('a','⚠ '+emp.nombre+': '+res.msg,'err');
+      lastMark[cedula]=Date.now()+5000;
+      pausaHasta=Date.now()+3000;   // mantener el aviso visible 3 s
+    } else if(res.ok){
+      setStatus('a','✓ '+emp.nombre+' — '+(res.tipo||modoActual)+' '+res.hora,'ok');
+      pausaHasta=Date.now()+3000;   // confirmación visible 3 s
+    } else {
+      setStatus('a','No se pudo registrar','err');
+      pausaHasta=Date.now()+3000;
+    }
+    RetoLive.hide();
+    if(livenessActivo()){ setTimeout(()=>{ if(escaneando) RetoLive.reset(); }, 3200); }
+  }catch(e){setStatus('a','Error al registrar','err'); pausaHasta=Date.now()+2000;}
+}
+
+/* ===== Reportes ===== */
+let vistaReportes='nomina';   // 'nomina' | 'jornadas' | 'marcas'
+let jornadasCache=[], nominaCache=[];
+
+// selector de vista (3 botones)
+document.querySelectorAll('.vista-btn').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.vista-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    vistaReportes=btn.dataset.vista;
+    document.getElementById('wrap-estado').style.display = (vistaReportes==='marcas')?'none':'block';
+    document.getElementById('wrap-jornada').style.display = (vistaReportes==='nomina')?'block':'none';
+    document.getElementById('st-marcas-l').textContent = vistaReportes==='nomina'?'Jornadas':(vistaReportes==='jornadas'?'Jornadas':'Marcas');
+    aplicarFiltros();
+  };
+});
+
+function renderRegistros(items){
+  registrosCache=items;
+  document.getElementById('st-marcas').textContent=items.length;
+  const c=document.getElementById('log-reportes');
+  if(!items.length){c.innerHTML='<p class="hint">Sin registros para este filtro.</p>';return;}
+  c.innerHTML=items.slice().reverse().map(x=>`
+    <div class="log-item">
+      <div><div class="l-nom">${x.nombre}</div><div class="l-fecha">${isoADmy(x.fecha)} · ${x.cedula}${x.cargo?' · '+x.cargo:''}</div></div>
+      <span><span class="badge ${x.tipo==='ENTRADA'?'in':'out'}">${x.tipo}</span> ${x.hora}</span>
+    </div>`).join('');
+}
+
+function renderJornadas(items){
+  jornadasCache=items;
+  document.getElementById('st-marcas').textContent=items.length;
+  const c=document.getElementById('log-reportes');
+  if(!items.length){c.innerHTML='<p class="hint">Sin jornadas para este filtro.</p>';return;}
+  c.innerHTML=items.map((x,i)=>{
+    const ent = x.entradaFecha?`${x.entradaFecha} ${x.entradaHora}`:'—';
+    const sal = x.salidaFecha?`${x.salidaFecha} ${x.salidaHora}`:'<span style="color:var(--err)">falta</span>';
+    const completo = x.estado==='Completo';
+    const horas = completo?`<b>${x.horas} h</b>`:'';
+    const btn = completo?'':`<button class="btn ghost" style="padding:6px 10px;font-size:11px;width:auto;margin-top:6px" onclick="abrirCompletar(${i})">Completar</button>`;
+    return `<div class="log-item" style="align-items:flex-start">
+      <div style="flex:1">
+        <div class="l-nom">${x.nombre} <span class="badge ${completo?'in':'out'}" style="margin-left:4px">${x.estado}</span></div>
+        <div class="l-fecha">${x.cedula}${x.cargo?' · '+x.cargo:''}</div>
+        <div class="l-fecha" style="margin-top:3px">Entrada: ${ent}</div>
+        <div class="l-fecha">Salida: ${sal}</div>
+        ${btn}
+      </div>
+      <span>${horas}</span>
+    </div>`;
+  }).join('');
+}
+
+// convierte 'yyyy-MM-dd' a 'DD/MM/AAAA' (cliente)
+function isoADmy(s){
+  const m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? (m[3]+'/'+m[2]+'/'+m[1]) : String(s);
+}
+
+async function cargarRegistrosHoy(){
+  if(!CFG.url)return;
+  const hoy=hoyLocal();
+  document.getElementById('f-desde').value=hoy;
+  document.getElementById('f-hasta').value=hoy;
+  document.getElementById('f-cedula').value='';
+  document.getElementById('f-nombre').value='';
+  document.getElementById('f-cargo').value='';
+  document.getElementById('f-estado').value='';
+  await aplicarFiltros();
+}
+
+async function aplicarFiltros(){
+  if(!CFG.url)return;
+  const desde=document.getElementById('f-desde').value;
+  const hasta=document.getElementById('f-hasta').value;
+  const cedula=document.getElementById('f-cedula').value.trim();
+  const nombreF=(document.getElementById('f-nombre').value||'').toLowerCase().trim();
+  const cargoF=document.getElementById('f-cargo').value||'';
+  const estadoF=document.getElementById('f-estado').value||'';
+  const jornadaDia=document.getElementById('f-jornada-dia').value||8;
+  const c=document.getElementById('log-reportes');
+  c.innerHTML='<div class="loading"><span class="spin"></span>Cargando…</div>';
+  try{
+    let accion='registros';
+    if(vistaReportes==='jornadas') accion='jornadas';
+    else if(vistaReportes==='nomina') accion='nomina';
+    let url=CFG.url+'?action='+accion;
+    if(desde) url+='&desde='+desde;
+    if(hasta) url+='&hasta='+hasta;
+    if(cedula) url+='&cedula='+encodeURIComponent(cedula);
+    if(vistaReportes==='nomina') url+='&jornada='+encodeURIComponent(jornadaDia);
+    const r=await fetch(url); const d=await r.json();
+    if(vistaReportes==='nomina'){
+      let n=d.nomina||[];
+      if(nombreF) n=n.filter(x=>String(x.nombre).toLowerCase().includes(nombreF));
+      if(cargoF) n=n.filter(x=>x.cargo===cargoF);
+      if(estadoF) n=n.filter(x=>x.estado===estadoF);
+      renderNomina(n);
+    } else if(vistaReportes==='jornadas'){
+      let j=d.jornadas||[];
+      if(nombreF) j=j.filter(x=>String(x.nombre).toLowerCase().includes(nombreF));
+      if(cargoF) j=j.filter(x=>x.cargo===cargoF);
+      if(estadoF) j=j.filter(x=>x.estado===estadoF);
+      renderJornadas(j);
+    } else {
+      let regs=d.registros||[];
+      if(nombreF) regs=regs.filter(x=>String(x.nombre).toLowerCase().includes(nombreF));
+      if(cargoF) regs=regs.filter(x=>x.cargo===cargoF);
+      renderRegistros(regs);
+    }
+  }catch(e){ c.innerHTML='<p class="hint">Error al cargar datos.</p>'; }
+}
+
+function renderNomina(items){
+  nominaCache=items;
+  document.getElementById('st-marcas').textContent=items.length;
+  const c=document.getElementById('log-reportes');
+  if(!items.length){c.innerHTML='<p class="hint">Sin jornadas para este filtro.</p>';return;}
+  c.innerHTML=items.map(x=>{
+    const completo=x.estado==='Completo';
+    return `<div class="log-item" style="align-items:flex-start">
+      <div style="flex:1">
+        <div class="l-nom">${x.nombre} <span class="badge ${completo?'in':'out'}" style="margin-left:4px">${x.estado}</span></div>
+        <div class="l-fecha">${x.cedula}${x.cargo?' · '+x.cargo:''}${x.empresa?' · '+x.empresa:''}</div>
+        <div class="l-fecha" style="margin-top:3px">Entrada: ${x.entradaFecha?x.entradaFecha+' '+x.entradaHora:'—'}</div>
+        <div class="l-fecha">Salida: ${x.salidaFecha?x.salidaFecha+' '+x.salidaHora:'<span style="color:var(--err)">falta</span>'}</div>
+        ${completo?`<div class="l-fecha" style="margin-top:4px;color:var(--c-deep)">
+          HE:${x.totalHE}h · Rec.Noct:${x.recNocturno}h · Fest:${x.totalFestivo}h</div>`:''}
+      </div>
+      <span>${completo?`<b>${x.horas} h</b>`:''}</span>
+    </div>`;
+  }).join('');
+}
+// fecha local 'yyyy-MM-dd' sin desfase UTC
+function hoyLocal(){
+  const d=new Date();
+  return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+}
+document.getElementById('btn-hoy').onclick=cargarRegistrosHoy;
+// Filtros en vivo: cualquier cambio reaplica (con pequeño debounce para texto)
+let filtroTimer=null;
+function filtroEnVivo(){ clearTimeout(filtroTimer); filtroTimer=setTimeout(aplicarFiltros,300); }
+['f-desde','f-hasta','f-cedula','f-nombre','f-cargo','f-estado','f-jornada-dia','f-jornada-sem'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(!el) return;
+  const ev = (el.tagName==='SELECT'||el.type==='date') ? 'change' : 'input';
+  el.addEventListener(ev, filtroEnVivo);
+});
+
+document.getElementById('btn-export').onclick=()=>{
+  const desde=document.getElementById('f-desde').value||'inicio';
+  const hasta=document.getElementById('f-hasta').value||'fin';
+  if(vistaReportes==='nomina'){
+    if(!nominaCache.length){alert('No hay datos para exportar');return;}
+    const rows=nominaCache.map(x=>({
+      'CEDULA':x.cedula,
+      'NOMBRE':x.nombre,
+      'Entrada': x.entradaFecha?(x.entradaFecha+' '+x.entradaHora):'',
+      'Salida':  x.salidaFecha?(x.salidaFecha+' '+x.salidaHora):'',
+      'Total Horas': x.horas,
+      'Horas Extras Diurnas 001061': x.heDiurna,
+      'Horas extras nocturnas 1062': x.heNocturna,
+      'Hora Extra Dominical o Festiva Diurna 001063': x.heDomDiurna,
+      'Hora Extra Dominical o Festiva Nocturna 001064': x.heDomNocturna,
+      'TOTAL HORAS EXTRAS': x.totalHE,
+      'Recargo Nocturno 001060': x.recNocturno,
+      'Recargo Nocturno Festivo / dominical 001066': x.recNocturnoFest,
+      'Festivo o Dominical Compensado 001065': x.festCompensado,
+      'TOTAL RECARGOS': x.totalRecargos,
+      'Festivo o Dominical Sin Compensatorio 001067': x.festSinCompensar,
+      'TOTAL FESTIVO O DOMINICAL': x.totalFestivo,
+      'JUSTIFICACIÓN HE': x.justificacionHE,
+      'Cuenta': x.cuenta,
+      'Ceco': x.ceco,
+      'Cargo': x.cargo,
+      'EMPRESA': x.empresa,
+      'AREA': '',
+      'SUCURSAL': ''
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Nomina');
+    XLSX.writeFile(wb,`Nomina_${desde}_a_${hasta}.xlsx`);
+  } else if(vistaReportes==='jornadas'){
+    if(!jornadasCache.length){alert('No hay jornadas para exportar');return;}
+    const rows=jornadasCache.map(x=>({
+      'Cédula':x.cedula,'Nombre':x.nombre,'Cargo':x.cargo,
+      'Entrada': x.entradaFecha?(x.entradaFecha+' '+x.entradaHora):'',
+      'Salida':  x.salidaFecha?(x.salidaFecha+' '+x.salidaHora):'',
+      'T.Horas': x.horas, 'Estado':x.estado
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    ws['!cols']=[{wch:14},{wch:24},{wch:18},{wch:22},{wch:22},{wch:9},{wch:12}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Jornadas');
+    XLSX.writeFile(wb,`Jornadas_${desde}_a_${hasta}.xlsx`);
+  } else {
+    if(!registrosCache.length){alert('No hay marcas para exportar');return;}
+    const rows=registrosCache.map(x=>({
+      'Fecha':isoADmy(x.fecha), 'Hora':x.hora, 'Tipo de acceso':x.tipo,
+      'Cédula':x.cedula, 'Nombre':x.nombre, 'Cargo':x.cargo||''
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    ws['!cols']=[{wch:12},{wch:12},{wch:14},{wch:14},{wch:24},{wch:18}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Marcas');
+    XLSX.writeFile(wb,`Marcas_${desde}_a_${hasta}.xlsx`);
+  }
+};
+
+/* ===== Modal completar jornada ===== */
+let completarIdx=-1;
+function dmyAIso(dmy){ const m=String(dmy).match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m?(m[3]+'-'+m[2]+'-'+m[1]):''; }
+function abrirCompletar(i){
+  const j=jornadasCache[i]; if(!j) return;
+  completarIdx=i;
+  // si falta salida -> sugerir SALIDA; si falta entrada -> ENTRADA
+  const faltaSalida = !j.salidaFecha;
+  document.getElementById('mc-tipo').value = faltaSalida?'SALIDA':'ENTRADA';
+  document.getElementById('mc-info').textContent =
+    `${j.nombre} (${j.cedula}) · ${faltaSalida?'Falta la SALIDA':'Falta la ENTRADA'}. `+
+    (j.entradaFecha?`Entrada: ${j.entradaFecha} ${j.entradaHora}`:'')+
+    (j.salidaFecha?`Salida: ${j.salidaFecha} ${j.salidaHora}`:'');
+  // prefijar fecha con la de la marca existente
+  const refDmy = j.entradaFecha || j.salidaFecha;
+  document.getElementById('mc-fecha').value = dmyAIso(refDmy) || hoyLocal();
+  document.getElementById('mc-hora').value = '';
+  document.getElementById('modal-completar').classList.remove('hidden');
+}
+document.getElementById('mc-cancelar').onclick=()=>{ document.getElementById('modal-completar').classList.add('hidden'); };
+document.getElementById('mc-guardar').onclick=async()=>{
+  const j=jornadasCache[completarIdx]; if(!j) return;
+  const tipo=document.getElementById('mc-tipo').value;
+  const fecha=document.getElementById('mc-fecha').value;
+  const hora=document.getElementById('mc-hora').value;
+  if(!fecha||!hora){ alert('Completa fecha y hora'); return; }
+  try{
+    const res=await postAS({action:'marcarmanual',cedula:j.cedula,nombre:j.nombre,cargo:j.cargo,tipo,fecha,hora});
+    if(res.error){ alert(res.error); return; }
+    document.getElementById('modal-completar').classList.add('hidden');
+    await aplicarFiltros();
+  }catch(e){ alert('Error al guardar la marca'); }
+};
+
+/* ===== REGISTRO ===== */
+document.getElementById('btn-cam-r').onclick=async()=>{
+  if(!CFG.url){setStatus('r','Configura la URL en Admin','err');return;}
+  try{
+    setStatus('r','Cargando modelos…','warn');
+    await loadModels();
+    streamR=await startCam('vid-r');
+    setStatus('r','Cámara lista. Ingresa datos e inicia.','ok');
+    document.getElementById('btn-capturar').disabled=false;
+    document.getElementById('btn-cam-r').textContent='Cámara activa';
+  }catch(e){setStatus('r','No se pudo acceder a la cámara','err');}
+};
+document.getElementById('btn-capturar').onclick=()=>{
+  const nom=document.getElementById('reg-nom').value.trim();
+  const ced=document.getElementById('reg-ced').value.trim();
+  if(!nom||!ced){setStatus('r','Completa nombre y cédula','err');return;}
+  if(capturing) return;
+  capturing=true; capStep=0; capDescriptors=[]; capFoto=null;
+  POSES.forEach((_,i)=>document.getElementById('step-'+i).className='step');
+  document.getElementById('btn-capturar').disabled=true;
+  runCaptureStep(nom,ced);
+};
+function runCaptureStep(nom,ced){
+  const v=document.getElementById('vid-r'), cv=document.getElementById('cv-r');
+  const pose=POSES[capStep];
+  document.getElementById('step-'+capStep).className='step active';
+  const instr={frente:'Mira al FRENTE',izquierda:'Gira a tu IZQUIERDA',derecha:'Gira a tu DERECHA'};
+  setStatus('r',instr[pose]+' y mantén…','warn');
+  let hold=0;
+  const iv=setInterval(async()=>{
+    if(!capturing){clearInterval(iv);return;}
+    cv.width=v.videoWidth; cv.height=v.videoHeight;
+    const det=await faceapi.detectSingleFace(v,new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks().withFaceDescriptor();
+    const ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+    if(!det){ hold=0; setStatus('r','No se detecta rostro','err'); return; }
+    const b=det.detection.box;
+    ctx.strokeStyle='#4d82bc'; ctx.lineWidth=3; ctx.strokeRect(b.x,b.y,b.width,b.height);
+    const detected=poseHorizontal(det.landmarks);
+    if(detected===pose){
+      hold++; setStatus('r',instr[pose]+' ✓ ('+hold+'/2)','ok');
+      if(pose==='frente' && CFG.foto && !capFoto) capFoto=capturarMiniatura(v,b);
+      if(hold>=2){
+        clearInterval(iv);
+        capDescriptors.push(Array.from(det.descriptor));
+        document.getElementById('step-'+capStep).className='step done';
+        capStep++;
+        if(capStep<POSES.length) runCaptureStep(nom,ced);
+        else finalizarRegistro(nom,ced);
+      }
+    } else { hold=0; setStatus('r',instr[pose]+' (detectado: '+detected+')','warn'); }
+  },500);
+}
+async function finalizarRegistro(nom,ced){
+  setStatus('r','Guardando…','warn');
+  const cargo=document.getElementById('reg-cargo').value;
+  const empresa=document.getElementById('reg-empresa').value;
+  const cuenta=document.getElementById('reg-cuenta').value;
+  const ceco=document.getElementById('reg-ceco').value;
+  try{
+    const res=await postAS({action:'registrar',nombre:nom,cedula:ced,cargo,empresa,cuenta,ceco,descriptores:capDescriptors,foto:capFoto||''});
+    if(res.error) throw new Error(res.error);
+    setStatus('r','✓ '+nom+' registrado ('+capDescriptors.length+' áng.)','ok');
+    document.getElementById('reg-nom').value=''; document.getElementById('reg-ced').value='';
+    await cargarEmpleados();
+  }catch(e){ setStatus('r','Error al guardar: '+e.message,'err'); }
+  capturing=false; document.getElementById('btn-capturar').disabled=false;
+}
+
+/* ===== Admin config ===== */
+document.getElementById('tg-girar').checked=CFG.retoGirar;
+document.getElementById('tg-parpadear').checked=CFG.retoParpadear;
+document.getElementById('tg-foto').checked=CFG.foto;
+document.getElementById('cfg-thresh').value=CFG.thresh;
+document.getElementById('tg-girar').onchange=e=>{ CFG.retoGirar=e.target.checked; localStorage.setItem('ca_girar',CFG.retoGirar?'1':'0'); };
+document.getElementById('tg-parpadear').onchange=e=>{ CFG.retoParpadear=e.target.checked; localStorage.setItem('ca_parpadear',CFG.retoParpadear?'1':'0'); };
+document.getElementById('tg-foto').onchange=e=>{ CFG.foto=e.target.checked; localStorage.setItem('ca_foto',CFG.foto?'1':'0'); };
+document.getElementById('btn-guardar-cfg').onclick=async()=>{
+  CFG.thresh=parseFloat(document.getElementById('cfg-thresh').value)||0.5;
+  localStorage.setItem('ca_thresh',CFG.thresh);
+  buildMatcher(); alert('Configuración guardada'); cargarEmpleados();
+};
+document.getElementById('btn-refresh-emp').onclick=cargarEmpleados;
+document.getElementById('btn-export-emp').onclick=async()=>{
+  try{
+    const r=await fetch(CFG.url+'?action=maestra');
+    const d=await r.json();
+    const lista=d.empleados||[];
+    if(!lista.length){alert('No hay empleados para exportar');return;}
+    const rows=lista.map(e=>({
+      'Cédula':e.cedula,'Nombre':e.nombre,'Cargo':e.cargo,
+      'Empresa':e.empresa||'','Cuenta':e.cuenta||'','CECO':e.ceco||'',
+      'Ángulos':e.angulos,'Fecha registro':e.fechaRegistro,'Hora registro':e.horaRegistro||''
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    ws['!cols']=[{wch:14},{wch:26},{wch:20},{wch:20},{wch:16},{wch:10},{wch:9},{wch:14},{wch:14}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Empleados');
+    const hoy=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb,'Maestra_Empleados_'+hoy+'.xlsx');
+  }catch(e){ alert('Error al descargar la maestra'); }
+};
+// filtros de personas (en vivo)
+document.getElementById('p-buscar').oninput=renderEmpleados;
+document.getElementById('p-cargo').onchange=renderEmpleados;
+
+// trae la clave admin desde la hoja Config del backend
+async function sincronizarClave(){
+  if(!CFG.url) return;
+  try{
+    const r=await fetch(CFG.url+'?action=config');
+    const d=await r.json();
+    if(d.clave) claveAdmin=String(d.clave);
+  }catch(e){ /* si falla, queda la clave por defecto 1234 */ }
+}
+
+/* ===== Init ===== */
+aplicarRol();
+if(CFG.url.indexOf('/exec')===-1 || CFG.url.indexOf('PEGA_AQUI')!==-1){
+  setStatus('a','⚠ Falta configurar la URL del Web App en el código (URL_FIJA)','err');
+} else {
+  setStatus('a','Pulsa "Encender cámara" para marcar','warn');
+  (async()=>{ await sincronizarClave(); await cargarEmpleados(); })();
+}
+</script>
+</body>
+</html>
